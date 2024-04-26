@@ -1,0 +1,336 @@
+unit uAtualizador;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Buttons, Vcl.Graphics, idftpcommon,
+  Vcl.ExtCtrls, IdFTP, IdException, IniFiles, ShellAPI, System.Zip, IdGlobal, IdFTPList,
+  System.StrUtils, Enum, FireDAC.Phys.FBDef, FireDAC.Stan.Intf,
+  FireDAC.Phys, FireDAC.Phys.IBBase, FireDAC.Phys.FB, FireDAC.Phys.PGDef,
+  FireDAC.Phys.PG, FireDAC.Phys.MySQLDef, FireDAC.Phys.MySQL, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
+  FireDAC.Stan.Pool, FireDAC.Stan.Async, Data.DB,
+  FireDAC.Comp.Client, FireDAC.Comp.ScriptCommands, FireDAC.Stan.Util,
+  FireDAC.Comp.Script, FireDAC.VCLUI.Wait, FireDAC.Comp.UI;
+
+type
+   TAtualizador = class
+      private
+         FIdFTP : TIdFTP;
+         FUser,
+         FPass,
+         FHost,
+         FDBName,
+         FDBUser,
+         FDBPass,
+         FDBServer,
+         FDBPort : String;
+         FPort : Integer;
+         FZip,
+         FReiniciar : Boolean;
+         FBanco : TTipoBanco;
+         FDriverFB : TFDPhysFBDriverLink;
+         FDriverPG : TFDPhysPgDriverLink;
+         FDriverMySQL : TFDPhysMySQLDriverLink;
+         FConn : TFDConnection;
+         FScript : TFDScript;
+         function getDirExe : String;
+         function getExeName : String;
+         function ConectarFTP : Boolean;
+         procedure Baixar;
+         procedure ConfigurarFTP;
+         procedure UnZip();
+         procedure Reiniciar(AExe : String);
+         procedure ListarScripts;
+         procedure ConfigurarBancoFB;
+         function ConectarBancoFB : Boolean;
+         function LerScript(AStringList : TStringList) : Boolean;
+      public
+         constructor Create(AZip, AReiniciar : Boolean; ABanco : TTipoBanco);
+         destructor Destroy(); override;
+         procedure Execute();
+         procedure DadosDB(ADataBaseName, AUser, APass, AServer, APort : String);
+         property Username: String  read FUser write FUser;
+         property Password: String  read FPass write FPass;
+         property Host:     String  read FHost write FHost;
+         property Port:     Integer read FPort write FPort;
+   end;
+
+implementation
+
+constructor TAtualizador.Create(AZip, AReiniciar : Boolean; ABanco : TTipoBanco);
+begin
+  FIdFTP     := TIdFTP.Create();
+  FConn      := TFDConnection.Create(nil);
+  FScript := TFDScript.Create(FConn);
+  FZip       := AZip;
+  FReiniciar := AReiniciar;
+  FBanco     := ABanco;
+end;
+
+procedure TAtualizador.Execute();
+begin
+  if not ConectarFTP then
+    Exit;
+
+  Baixar;
+
+  if FZip then
+  begin
+    UnZip;
+  end;
+
+  if FBanco <> fpNone then
+  ListarScripts;
+
+  ShowMessage('Sistema atualizado com sucesso!');
+
+  if FReiniciar then
+  begin
+    Reiniciar(ParamStr(0));
+  end;
+end;
+
+procedure TAtualizador.UnZip();
+var
+  UnZipper: TZipFile;
+  sZIPName: string;
+begin
+  sZIPName := getDirExe + getExeName +'.zip';
+
+  UnZipper := TZipFile.Create();
+  try
+    UnZipper.Open(sZIPName, zmRead);
+    UnZipper.ExtractAll(getDirExe);
+    UnZipper.Close;
+  finally
+    FreeAndNil(UnZipper);
+  end;
+end;
+
+procedure TAtualizador.DadosDB(ADataBaseName, AUser, APass, AServer, APort: String);
+begin
+  FDBName   := ADataBaseName;
+  FDBUser   := AUser;
+  FDBPass   := APass;
+  FDBServer := AServer;
+  FDBPort   := APort;
+end;
+
+destructor TAtualizador.Destroy;
+begin
+  FreeAndNil(FIdFTP);
+  FConn.Connected := False;
+  FreeAndNil(FConn);
+  inherited;
+end;
+
+procedure TAtualizador.Baixar;
+begin
+  try
+    if FileExists(getDirExe + getExeName + '2.exe') then
+      DeleteFile(getDirExe + getExeName + '2.exe');
+
+    if FZip then
+      if FileExists(getDirExe + getExeName + '.zip') then
+        DeleteFile(getDirExe + getExeName + '.zip');
+
+    if FileExists(getDirExe + getExeName + '.exe') then
+      RenameFile(getDirExe + getExeName + '.exe', getDirExe + getExeName + '2.exe');
+
+    if FZip then
+    begin
+      FidFTP.Get(getExeName + '.zip',
+        getDirExe + getExeName + '.zip', True, True);
+      UnZip();
+    end
+    else
+    begin
+      FidFTP.Get(getExeName + '.exe',
+        getDirExe + getExeName + '.exe', True, True);
+    end;
+
+  except
+    On E:Exception do
+    begin
+      if E is EIdConnClosedGracefully then
+        Exit;
+      ShowMessage('Erro ao baixar a atualização: ' + E.Message);
+      Abort;
+    end;
+  end;
+end;
+
+function TAtualizador.getExeName;
+begin
+  Result := (ExtractFileName(Application.ExeName)).Replace('.exe','',[rfReplaceAll,rfIgnoreCase]);
+end;
+
+function TAtualizador.LerScript(AStringList: TStringList): Boolean;
+var
+   i, PosicaoNomeArquivo : Integer;
+   NomeArquivo : String;
+begin
+  for i := 0 to AStringList.Count - 1 do
+  begin
+    // Pego a posição atual onde começa o nome do arquivo
+    // Tratativa feita por conta do que o .List retorna.
+    PosicaoNomeArquivo := LastDelimiter(';', AStringList[i]);
+    if PosicaoNomeArquivo > 0 then
+    begin
+      NomeArquivo := Trim(Copy(AStringList[i], PosicaoNomeArquivo + 1, MaxInt));
+      if not StartsText('type=', NomeArquivo) then // Verifica se é realmente o nome do arquivo
+      begin
+        // Verifica extensão .sql e executo o script.
+        if SameText(ExtractFileExt(NomeArquivo), '.sql') then
+        begin
+          with FScript do
+          begin
+            SQLScriptFileName := NomeArquivo;
+            ValidateAll;
+            ExecuteAll;
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TAtualizador.ListarScripts;
+var
+   LScripts : TStringList;
+   I, PosicaoNomeArquivo : Integer;
+   NomeArquivo : String;
+begin
+  LScripts := TStringList.Create();
+  try
+    FIdFTP.List(LScripts); // Obter lista de arquivos no diretório atual do FTP
+
+    for i := 0 to LScripts.Count - 1 do
+    begin
+      // Pego a posição atual onde começa o nome do arquivo
+      // Tratativa feita por conta do que o .List retorna.
+      PosicaoNomeArquivo := LastDelimiter(';', LScripts[i]);
+      if PosicaoNomeArquivo > 0 then
+      begin
+        NomeArquivo := Trim(Copy(LScripts[i], PosicaoNomeArquivo + 1, MaxInt));
+        if not StartsText('type=', NomeArquivo) then // Verifica se é realmente o nome do arquivo
+        begin
+          // Verifica extensão .sql e realiza o download
+          if SameText(ExtractFileExt(NomeArquivo), '.sql') then
+          begin
+            FIdFTP.Get(NomeArquivo, getDirExe + NomeArquivo, True, True);
+          end;
+        end;
+      end;
+    end;
+
+    // Após baixar todos os arquivos executa todos os scripts
+    case FBanco of
+      fpNone: ;
+      // Rotina para o FireBird
+      fpFirebird:
+      begin
+        try
+          ConectarBancoFB;
+          LerScript(LScripts);
+        except
+          On E: Exception do
+          begin
+            ShowMessage('Erro ao atualizar banco FireBird!'+#13+E.Message);
+          End;
+        end;
+      end;
+      // Rotina para o MySQL
+      fpMySQL:
+      begin
+//        ListarScripts;
+      end;
+      // Rotina para o PostGre
+      fpPostGre:
+      begin
+//        ListarScripts;
+      end;
+    end;
+
+    // Após execução dos scripts, exclui os arquivos baixados.
+
+    ShowMessage('Download concluído!');
+  finally
+    LScripts.Free;
+  end;
+end;
+
+procedure TAtualizador.Reiniciar(AExe: String);
+var
+   handle : HWND;
+begin
+  ShellExecute(handle,'open',PChar(AExe),nil,nil,SW_ShowNormal);
+  Application.Terminate;
+end;
+
+function TAtualizador.getDirExe: string;
+begin
+  Result := ExtractFilePath(Application.ExeName);
+end;
+
+procedure TAtualizador.ConfigurarBancoFB;
+begin
+  FConn.Params.Database := FDBName;
+  FConn.Params.UserName := FDBUser;
+  FConn.Params.Password := FDBPass;
+  FConn.Params.Add('Port='+FDBPort);
+  FConn.Params.Add('Server='+FDBServer);
+  FConn.LoginPrompt := False;
+  FConn.DriverName  := 'FB';
+end;
+
+procedure TAtualizador.ConfigurarFTP();
+begin
+  FidFTP.Username     := FUser;
+  FidFTP.Password     := FPass;
+  FidFTP.Host         := FHost;
+  FidFTP.Port         := FPort;
+  FidFTP.Passive      := True;
+  FidFTP.TransferType := ftBinary;
+end;
+
+function TAtualizador.ConectarBancoFB : Boolean;
+begin
+  ConfigurarBancoFB;
+
+  if FConn.Connected then
+    FConn.Connected := not FConn.Connected;
+  try
+    FConn.Connected := not FConn.Connected;
+    Result := True;
+  except
+    On E: Exception do
+    begin
+      ShowMessage('Falha na conexão com o Banco FireBird: ' + E.Message);
+      Result := False;
+    end;
+
+  end;
+end;
+
+function TAtualizador.ConectarFTP : Boolean;
+begin
+  ConfigurarFTP;
+
+  if FidFTP.Connected then
+    FidFTP.Disconnect;
+  try
+    FidFTP.Connect;
+    Result := True;
+  except
+    On E:Exception do
+    begin
+      ShowMessage('Falha na conexão com o FTP: ' + E.Message);
+      Result := False;
+    end;
+  end;
+end;
+
+end.
