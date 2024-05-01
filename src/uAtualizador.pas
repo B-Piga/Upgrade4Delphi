@@ -83,7 +83,10 @@ begin
     end;
 
     if FBanco <> fpNone then
-    ListarScripts;
+    begin
+      ConectarBanco;
+      ListarScripts;
+    end;
 
     if FReiniciar then
     begin
@@ -136,6 +139,7 @@ begin
   FreeAndNil(FIdFTP);
   FConn.Connected := False;
   FreeAndNil(FConn);
+  FreeAndNil(FWaitCursor);
   inherited;
 end;
 
@@ -187,15 +191,15 @@ var
 begin
   for i := 0 to AStringList.Count - 1 do
   begin
-    // Pego a posi��o atual onde come�a o nome do arquivo
+    // Pego a posição atual onde começa o nome do arquivo
     // Tratativa feita por conta do que o .List retorna.
     PosicaoNomeArquivo := LastDelimiter(';', AStringList[i]);
     if PosicaoNomeArquivo > 0 then
     begin
       NomeArquivo := Trim(Copy(AStringList[i], PosicaoNomeArquivo + 1, MaxInt));
-      if not StartsText('type=', NomeArquivo) then // Verifica se � realmente o nome do arquivo
+      if not StartsText('type=', NomeArquivo) then // Verifica se é realmente o nome do arquivo
       begin
-        // Verifica extens�o .sql e executo o script.
+        // Verifica extensão .sql e executo o script.
         if SameText(ExtractFileExt(NomeArquivo), '.sql') then
         begin
           try
@@ -216,15 +220,15 @@ var
 begin
   for i := 0 to AStringList.Count - 1 do
   begin
-    // Pego a posi��o atual onde come�a o nome do arquivo
+    // Pego a posição atual onde começa o nome do arquivo
     // Tratativa feita por conta do que o .List retorna.
     PosicaoNomeArquivo := LastDelimiter(';', AStringList[i]);
     if PosicaoNomeArquivo > 0 then
     begin
       NomeArquivo := Trim(Copy(AStringList[i], PosicaoNomeArquivo + 1, MaxInt));
-      if not StartsText('type=', NomeArquivo) then // Verifica se � realmente o nome do arquivo
+      if not StartsText('type=', NomeArquivo) then // Verifica se é realmente o nome do arquivo
       begin
-        // Verifica extens�o .sql e executo o script.
+        // Verifica extensão .sql e executo o script.
         if SameText(ExtractFileExt(NomeArquivo), '.sql') then
         begin
           try
@@ -255,15 +259,15 @@ begin
 
     for i := 0 to LScripts.Count - 1 do
     begin
-      // Pego a posi��o atual onde come�a o nome do arquivo
+      // Pego a posição atual onde começa o nome do arquivo
       // Tratativa feita por conta do que o .List retorna.
       PosicaoNomeArquivo := LastDelimiter(';', LScripts[i]);
       if PosicaoNomeArquivo > 0 then
       begin
         NomeArquivo := Trim(Copy(LScripts[i], PosicaoNomeArquivo + 1, MaxInt));
-        if not StartsText('type=', NomeArquivo) then // Verifica se � realmente o nome do arquivo
+        if not StartsText('type=', NomeArquivo) then // Verifica se é realmente o nome do arquivo
         begin
-          // Verifica extens�o .sql e realiza o download
+          // Verifica extensão .sql e realiza o download
           if SameText(ExtractFileExt(NomeArquivo), '.sql') then
           begin
             FIdFTP.Get(NomeArquivo, getDirExe + NomeArquivo, True, True);
@@ -272,42 +276,20 @@ begin
       end;
     end;
 
-    // Ap�s baixar todos os arquivos executa todos os scripts
-    case FBanco of
-      fpNone: ;
-      // Rotina para o FireBird
-      fpFirebird:
-      begin
-        try
-          ConectarBancoFB;
-          LerScript(LScripts);
-        except
-          On E: Exception do
-          begin
-            ShowMessage('Erro ao atualizar banco FireBird!'+#13+E.Message);
-          End;
-        end;
-      end;
-      // Rotina para o MySQL
-      fpMySQL:
-      begin
-//        ListarScripts;
-      end;
-      // Rotina para o PostGre
-      fpPostGre:
-      begin
-//        ListarScripts;
-      end;
+    // Após baixar todos os arquivos executa todos os scripts
+    try
+      LerScript(LScripts);
+    except
+      On E: Exception do
+        ShowMessage('Erro ao atualizar banco de dados!'+#13+E.Message);
     end;
 
-    // Ap�s execu��o dos scripts, exclui os arquivos baixados.
+    // Após execução dos scripts, exclui os arquivos baixados.
     try
       RemoverScript(LScripts);
     except
       On E: Exception do
-      begin
         ShowMessage('Erro ao deletar scripts!'+#13+E.Message);
-      end;
     end;
   finally
     LScripts.Free;
@@ -327,7 +309,7 @@ begin
   Result := ExtractFilePath(Application.ExeName);
 end;
 
-procedure TAtualizador.ConfigurarBancoFB;
+procedure TAtualizador.ConfigurarBanco;
 begin
   FConn.Params.Database := FDBName;
   FConn.Params.UserName := FDBUser;
@@ -335,7 +317,12 @@ begin
   FConn.Params.Add('Port='+FDBPort);
   FConn.Params.Add('Server='+FDBServer);
   FConn.LoginPrompt := False;
-  FConn.DriverName  := 'FB';
+
+  case FBanco of
+    fpFirebird : FConn.DriverName := 'FB';
+    fpMySQL    : FConn.DriverName := 'MySQL';
+    fpPostGre  : FConn.DriverName := 'PG';
+  end;
 end;
 
 procedure TAtualizador.ConfigurarFTP();
@@ -348,9 +335,9 @@ begin
   FidFTP.TransferType := ftBinary;
 end;
 
-function TAtualizador.ConectarBancoFB : Boolean;
+function TAtualizador.ConectarBanco : Boolean;
 begin
-  ConfigurarBancoFB;
+  ConfigurarBanco;
 
   if FConn.Connected then
     FConn.Connected := not FConn.Connected;
@@ -360,7 +347,7 @@ begin
   except
     On E: Exception do
     begin
-      ShowMessage('Falha na conex�o com o Banco FireBird: ' + E.Message);
+      ShowMessage('Falha na conexão com o Banco de Dados: ' + E.Message);
       Result := False;
     end;
 
@@ -379,7 +366,7 @@ begin
   except
     On E:Exception do
     begin
-      ShowMessage('Falha na conex�o com o FTP: ' + E.Message);
+      ShowMessage('Falha na conexão com o FTP: ' + E.Message);
       Result := False;
     end;
   end;
