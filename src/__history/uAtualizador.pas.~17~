@@ -44,8 +44,8 @@ type
          procedure UnZip();
          procedure Reiniciar(AExe : String);
          procedure ListarScripts;
-         procedure ConfigurarBanco;
-         function ConectarBanco : Boolean;
+         procedure ConfigurarBancoFB;
+         function ConectarBancoFB : Boolean;
          function LerScript(AStringList : TStringList) : Boolean;
          function RemoverScript(AStringList : TStringList) : Boolean;
          procedure BackupBd;
@@ -65,10 +65,10 @@ var
   GbakCommand : String;
   GbakPath : String;
 begin
-  BackupFileName := getDirExe + getExeName + '.fbk';
+  BackupFileName := getDirExe + getExeName + '.fdb'
   GbakPath := getDirExe + 'gbak.exe';
-  GbakCommand := Format('%s -b -user %s -password %s "%s" "%s"', [
-    GbakPath,  // Caminho para o gbak
+  GbakCommand := Format('"%s" -b -user %s -password %s "%s" "%s"', [
+    'C:\path\to\gbak.exe',  // Caminho para o gbak
     FDBUser,
     FDBPass,
     FDBName,
@@ -97,7 +97,6 @@ begin
     if not ConectarFTP then
     Exit;
 
-    if FExe then
     Baixar;
 
     if FZip then
@@ -106,7 +105,7 @@ begin
     if FBanco <> fpNone then
     begin
       ConectarBanco;
-      if (FBackup) and (FBanco = fpFirebird) then
+      if FBackup then
         BackupBd;
       ListarScripts;
     end;
@@ -277,7 +276,7 @@ var
 begin
   LScripts := TStringList.Create();
   try
-    FIdFTP.List(LScripts); // Obter lista de arquivos no diretório atual do FTP
+    FIdFTP.List(LScripts); // Obter lista de arquivos no diret�rio atual do FTP
 
     for i := 0 to LScripts.Count - 1 do
     begin

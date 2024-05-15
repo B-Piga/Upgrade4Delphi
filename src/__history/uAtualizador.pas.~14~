@@ -28,7 +28,7 @@ type
          FDBPort : String;
          FPort : Integer;
          FZip,
-         FReiniciar, FBackup, FExe : Boolean;
+         FReiniciar, FBackup : Boolean;
          FBanco : TTipoBanco;
          FDriverFB : TFDPhysFBDriverLink;
          FDriverPG : TFDPhysPgDriverLink;
@@ -44,8 +44,8 @@ type
          procedure UnZip();
          procedure Reiniciar(AExe : String);
          procedure ListarScripts;
-         procedure ConfigurarBanco;
-         function ConectarBanco : Boolean;
+         procedure ConfigurarBancoFB;
+         function ConectarBancoFB : Boolean;
          function LerScript(AStringList : TStringList) : Boolean;
          function RemoverScript(AStringList : TStringList) : Boolean;
          procedure BackupBd;
@@ -63,12 +63,10 @@ procedure TAtualizador.BackupBd;
 var
   BackupFileName,
   GbakCommand : String;
-  GbakPath : String;
 begin
-  BackupFileName := getDirExe + getExeName + '.fbk';
-  GbakPath := getDirExe + 'gbak.exe';
-  GbakCommand := Format('%s -b -user %s -password %s "%s" "%s"', [
-    GbakPath,  // Caminho para o gbak
+  BackupFileName := getDirExe + getExeName + '.fdb'
+  GbakCommand := Format('"%s" -b -user %s -password %s "%s" "%s"', [
+    'C:\path\to\gbak.exe',  // Caminho para o gbak
     FDBUser,
     FDBPass,
     FDBName,
@@ -88,7 +86,6 @@ begin
   FReiniciar         := AReiniciar;
   FBanco             := ABanco;
   FBackup            := ABackup;
-  FExe               := AExe;
 end;
 
 function TAtualizador.Execute() : Boolean;
@@ -97,7 +94,6 @@ begin
     if not ConectarFTP then
     Exit;
 
-    if FExe then
     Baixar;
 
     if FZip then
@@ -106,7 +102,7 @@ begin
     if FBanco <> fpNone then
     begin
       ConectarBanco;
-      if (FBackup) and (FBanco = fpFirebird) then
+      if FBackup then
         BackupBd;
       ListarScripts;
     end;
@@ -277,7 +273,7 @@ var
 begin
   LScripts := TStringList.Create();
   try
-    FIdFTP.List(LScripts); // Obter lista de arquivos no diretório atual do FTP
+    FIdFTP.List(LScripts); // Obter lista de arquivos no diret�rio atual do FTP
 
     for i := 0 to LScripts.Count - 1 do
     begin
