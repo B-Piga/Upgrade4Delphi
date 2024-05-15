@@ -4,15 +4,15 @@
     <Transaction>2023/12/04 20:16:39.000.531,=C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
     <Transaction>2023/12/04 20:16:57.000.143,=C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
     <Transaction>2024/04/25 22:16:43.000.626,=C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
-    <Transaction>2024/04/25 22:18:32.000.458,C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Unit1.dfm=D:\Sistemas\Atualizar\main.dfm</Transaction>
-    <Transaction>2024/04/25 22:18:32.000.458,C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Unit1.pas=D:\Sistemas\Atualizar\main.pas</Transaction>
-    <Transaction>2024/04/25 22:18:37.000.761,C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Project1.dproj=D:\Sistemas\Atualizar\Atualizar.dproj</Transaction>
-    <Transaction>2024/04/25 22:58:17.000.801,=D:\Sistemas\Atualizar\uAtualizador.pas</Transaction>
+    <Transaction>2024/04/25 22:18:32.000.458,D:\Sistemas\Atualizar\main.dfm=C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Unit1.dfm</Transaction>
+    <Transaction>2024/04/25 22:18:32.000.458,D:\Sistemas\Atualizar\main.pas=C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2024/04/25 22:18:37.000.761,D:\Sistemas\Atualizar\Atualizar.dproj=C:\Users\Piga\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
     <Transaction>2024/04/25 22:58:17.000.692,=D:\Sistemas\Atualizar\Enum.pas</Transaction>
-    <Transaction>2024/04/26 00:16:37.000.665,=D:\Sistemas\Atualizar\Enum.pas</Transaction>
+    <Transaction>2024/04/25 22:58:17.000.801,=D:\Sistemas\Atualizar\uAtualizador.pas</Transaction>
     <Transaction>2024/04/26 00:16:37.000.665,=D:\Sistemas\Atualizar\uAtualizador.pas</Transaction>
-    <Transaction>2024/04/26 01:13:08.000.051,D:\Sistemas\Atualizar\Enum.pas=</Transaction>
+    <Transaction>2024/04/26 00:16:37.000.665,=D:\Sistemas\Atualizar\Enum.pas</Transaction>
     <Transaction>2024/04/26 01:13:08.000.032,D:\Sistemas\Atualizar\uAtualizador.pas=</Transaction>
+    <Transaction>2024/04/26 01:13:08.000.051,D:\Sistemas\Atualizar\Enum.pas=</Transaction>
     <Transaction>2024/05/01 11:40:37.000.724,=D:\Sistemas\Atualizar\Enum.pas</Transaction>
     <Transaction>2024/05/01 11:40:38.000.887,=D:\Sistemas\Atualizar\uAtualizador.pas</Transaction>
   </Transactions>

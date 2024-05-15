@@ -36,8 +36,6 @@ type
          FConn : TFDConnection;
          FScript : TFDScript;
          FWaitCursor: TFDGUIxWaitCursor;
-         function getDirExe : String;
-         function getExeName : String;
          function ConectarFTP : Boolean;
          procedure Baixar;
          procedure ConfigurarFTP;
@@ -55,6 +53,8 @@ type
          function Execute() : Boolean;
          procedure DadosDB(ADataBaseName, AUser, APass, AServer, APort : String);
          procedure DadosFTP(AUser, APass, AHost : String ; APort : Integer);
+         function getDirExe : String;
+         function getExeName : String;
    end;
 
 implementation
@@ -99,9 +99,6 @@ begin
 
     if FExe then
     Baixar;
-
-    if FZip then
-    UnZip;
 
     if FBanco <> fpNone then
     begin
@@ -171,9 +168,8 @@ begin
     if FileExists(getDirExe + getExeName + '2.exe') then
       DeleteFile(getDirExe + getExeName + '2.exe');
 
-    if FZip then
-      if FileExists(getDirExe + getExeName + '.zip') then
-        DeleteFile(getDirExe + getExeName + '.zip');
+    if FileExists(getDirExe + getExeName + '.zip') then
+      DeleteFile(getDirExe + getExeName + '.zip');
 
     if FileExists(getDirExe + getExeName + '.exe') then
       RenameFile(getDirExe + getExeName + '.exe', getDirExe + getExeName + '2.exe');

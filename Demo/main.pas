@@ -29,14 +29,14 @@ var
   Atualizar : TAtualizador;
   Resultado : String;
 begin
-  Atualizar := TAtualizador.Create(False, True, True, False, fpFirebird);
+  Atualizar := TAtualizador.Create(False, True, True, True, fpFirebird);
   Atualizar.DadosFTP('delivery@forca.bvxtecnologia.com.br',
                      '@BVX221912',
                      'ftp.bvxtecnologia.com.br',
                      21);
-  Atualizar.DadosDB('D:\Sistemas\Atualizar\BANCOTESTE.FDB',
+  Atualizar.DadosDB(Atualizar.getDirExe+'BANCOTESTE.FDB',
                     'SYSDBA',
-                    'masterkey',
+                    'aivilo7',
                     'localhost',
                     '3050');
   Atualizar.Execute;
